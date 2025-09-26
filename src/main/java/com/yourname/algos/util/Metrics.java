@@ -1,52 +1,34 @@
 package com.yourname.algos.util;
 
-public final class Metrics {
-    // event counters
-    private static long comparisons = 0;
-    private static long allocations = 0;
+public final class Metrics implements AutoCloseable {
+    private static final ThreadLocal<Integer> DEPTH = ThreadLocal.withInitial(() -> 0);
 
-    // recursion depth
-    private static int currentDepth = 0;
-    private static int maxDepth = 0;
+    public long comparisons = 0;
+    public long allocations = 0;
+    public int  maxDepth    = 0;
 
-    // timing (ns)
-    private static long startTimeNs = 0;
-    private static long elapsedNs = 0;
-
-    private Metrics() {}
-
-    // ---- lifecycle ----
-    public static void reset() {
+    public void reset() {
         comparisons = 0;
         allocations = 0;
-        currentDepth = 0;
-        maxDepth = 0;
-        startTimeNs = 0;
-        elapsedNs = 0;
+        maxDepth    = 0;
+        DEPTH.set(0);
     }
 
-    // ---- counters ----
-    public static void incComparison() { comparisons++; }
-    public static void addComparisons(long delta) { comparisons += delta; }
-    public static void incAllocation() { allocations++; }
-    public static void addAllocations(long delta) { allocations += delta; }
-
-    // ---- recursion tracking ----
-    public static void enterRecursion() {
-        currentDepth++;
-        if (currentDepth > maxDepth) maxDepth = currentDepth;
-    }
-    public static void exitRecursion() {
-        currentDepth--;
+    // Call when a recursive frame starts
+    public void enter() {
+        int d = DEPTH.get() + 1;
+        DEPTH.set(d);
+        if (d > maxDepth) maxDepth = d;
     }
 
-    // ---- timing ----
-    public static void startTimer() { startTimeNs = System.nanoTime(); }
-    public static void stopTimer() { elapsedNs = System.nanoTime() - startTimeNs; }
+    // Call when a recursive frame ends (use try-with-resources below)
+    @Override public void close() {
+        DEPTH.set(DEPTH.get() - 1);
+    }
 
-    // ---- getters ----
-    public static long getComparisons() { return comparisons; }
-    public static long getAllocations() { return allocations; }
-    public static int  getMaxDepth()    { return maxDepth; }
-    public static long getElapsedNs()   { return elapsedNs; }
+    // Comparison helpers (use these inside algorithms)
+    public int cmp(int a, int b) { comparisons++; return Integer.compare(a, b); }
+
+    // Count “algorithmic” allocations you do (e.g., temp buffers)
+    public void addAlloc(long n) { allocations += n; }
 }
