@@ -23,6 +23,7 @@ public final class MetricsRunner {
         int trials = 3;
         long seed = 42L;
 
+
         // Register algorithms here (start with NOOP)
         Map<String, Algo> algos = new LinkedHashMap<>();
         algos.put("nope", (arr, m) -> {
