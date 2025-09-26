@@ -43,4 +43,4 @@ class QuickSortTest {
         QuickSort.sort(reversed, mr);
         assertArrayEquals(exp2, reversed);
     }
-}
+}x
