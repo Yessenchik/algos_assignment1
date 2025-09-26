@@ -1,38 +1,29 @@
 package com.yourname.algos.util;
 
 import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.*;
 
 class MetricsTest {
 
     @Test
-    void tracksRecursionDepth() {
-        Metrics m = new Metrics();
+    void countsDepthAndTimingWork() {
+        Metrics.reset();
+        Metrics.startTimer();
 
-        m.enter(); // depth = 1
-        m.enter(); // depth = 2
-        m.exit();  // depth = 1
-        m.exit();  // depth = 0
+        // simulate some work
+        Metrics.incComparison();
+        Metrics.incComparison();
+        Metrics.incAllocation();
+        Metrics.enterRecursion();
+        Metrics.enterRecursion();
+        Metrics.exitRecursion();
+        Metrics.exitRecursion();
 
-        assertEquals(2, m.maxDepth, "Max depth should be 2 after nested enters");
-    }
+        Metrics.stopTimer();
 
-    @Test
-    void resetClearsAllCounters() {
-        Metrics m = new Metrics();
-
-        m.comparisons = 5;
-        m.swaps = 3;
-        m.allocations = 2;
-        m.enter(); // depth = 1
-        m.exit();  // back to 0
-
-        m.reset();
-
-        assertEquals(0, m.comparisons);
-        assertEquals(0, m.swaps);
-        assertEquals(0, m.allocations);
-        assertEquals(0, m.maxDepth);
+        assertEquals(2, Metrics.getComparisons(), "comparisons");
+        assertEquals(1, Metrics.getAllocations(), "allocations");
+        assertEquals(2, Metrics.getMaxDepth(),   "maxDepth");
+        assertTrue(Metrics.getElapsedNs() >= 0,  "elapsed >= 0");
     }
 }
