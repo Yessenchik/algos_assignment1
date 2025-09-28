@@ -1,50 +1,53 @@
 package com.yourname.algos.cli;
 
-import com.yourname.algos.sort.MergeSort;
-import com.yourname.algos.util.CsvWriter;
-import com.yourname.algos.util.Metrics;
+import com.yourname.algos.metrics.Metrics;
+import com.yourname.algos.metrics.M;
+import com.yourname.algos.metrics.DepthGuard;
+import com.yourname.algos.metrics.Csv;
 
 import java.nio.file.Path;
 import java.util.Random;
 
-public final class MetricsRunner {
+public class MetricsRunner {
     public static void main(String[] args) {
-        int[] sizes = {256, 512, 1024, 2048, 4096};
-        int trials = 3;
-        long seed = 42L;
+        int n = args.length>0 ? Integer.parseInt(args[0]) : 1000;
+        long seed = args.length>1 ? Long.parseLong(args[1]) : 42L;
 
-        try (CsvWriter csv = new CsvWriter(Path.of("out/metrics.csv"))) {
-            csv.writeHeader("algo","n","nTrials","trial","elapsed_ns","comparisons","allocations","max_depth","notes");
+        Metrics met = new Metrics();
+        met.setContext("demo-counting", n, seed, "sanity check w/o mergesort");
+        int[] a = new int[n];
+        Random rnd = new Random(seed);
+        for (int i=0;i<n;i++) a[i]=rnd.nextInt();
 
-            for (int n : sizes) {
-                for (int t = 1; t <= trials; t++) {
-                    int[] a = randomArray(n, seed + t);
+        // Fake recursion to test depth tracking
+        met.start();
+        int res = demoRecursive(a, 0, n, met);
+        met.stop();
 
-                    // ===== MERGESORT =====
-                    int[] copy = a.clone();
-                    Metrics.reset();
-                    Metrics.startTimer();
-                    MergeSort.sort(copy);
-                    Metrics.stopTimer();
-
-                    csv.writeRow(
-                            "mergesort", n, trials, t,
-                            Metrics.getElapsedNs(),
-                            Metrics.getComparisons(),
-                            Metrics.getAllocations(),
-                            Metrics.getMaxDepth(),
-                            "cutoff=16"
-                    );
-                }
-            }
-        }
-        System.out.println("Wrote metrics to out/metrics.csv");
+        Path out = Path.of("out", "metrics.csv");
+        Csv.appendWithHeader(out, met.header(), met.toCsvRow());
+        System.out.println("result="+res+" wrote "+out.toString());
     }
 
-    private static int[] randomArray(int n, long seed) {
-        Random r = new Random(seed);
-        int[] a = new int[n];
-        for (int i = 0; i < n; i++) a[i] = r.nextInt();
-        return a;
+    // A toy recursion: sum with divide-and-conquer to exercise DepthGuard
+    private static int demoRecursive(int[] a, int lo, int hi, Metrics m){
+        try (DepthGuard __ = m.enter()) {
+            int len = hi - lo;
+            if (len <= 32) {
+                int s=0;
+                for (int i=lo;i<hi;i++){
+                    // touch comparison API just to increment metric
+                    if (M.cmp(a[i], 0, m) >= 0) s += a[i];
+                    else s -= a[i];
+                }
+                return s;
+            }
+            int mid = lo + (len>>1);
+            int L = demoRecursive(a, lo, mid, m);
+            int R = demoRecursive(a, mid, hi, m);
+            // do a swap to tick the swap counter once in a while
+            if ((len & 1)==0) M.swap(a, lo, mid-1, m);
+            return L ^ R; // arbitrary combine
+        }
     }
 }
