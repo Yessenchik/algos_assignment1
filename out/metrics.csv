@@ -20,3 +20,5 @@ nope,4096,3,3,83,0,0,0,
 "demo-counting",1000,310583,1000,15,0,6,42,"sanity check w/o mergesort"
 "demo-counting",1000,425208,1000,15,0,6,42,"sanity check w/o mergesort"
 "demo-counting",1000,339042,1000,15,0,6,42,"sanity check w/o mergesort"
+"quicksort",100000,14439041,2042573,804703,0,32,0,"cutoff=16"
+"quicksort",100000,15582750,2042573,804703,0,32,0,"cutoff=16"
