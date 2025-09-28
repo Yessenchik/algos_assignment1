@@ -1,72 +1,59 @@
 package com.yourname.algos.sort;
 
-import com.yourname.algos.util.Metrics;
-import java.util.Arrays;
+import com.yourname.algos.metrics.DepthGuard;
+import com.yourname.algos.metrics.M;
+import com.yourname.algos.metrics.Metrics;
 
 public final class MergeSort {
-    private static final int CUTOFF = 16; // cutoff for small n → insertion sort
 
-    private MergeSort() {}
-
-    // Public entrypoint
-    public static void sort(int[] a) {
-        if (a == null || a.length <= 1) return;
-        Metrics.reset();
-        int[] buf = Arrays.copyOf(a, a.length); // one reusable buffer
-        Metrics.incAllocation();
-        sort(a, 0, a.length, buf);
-    }
-
-    // Recursive helper for a[lo..hi)
-    private static void sort(int[] a, int lo, int hi, int[] buf) {
-        int n = hi - lo;
-        if (n <= 1) return;
-
-        if (n <= CUTOFF) {
-            insertionSort(a, lo, hi);
-            return;
-        }
-
-        Metrics.enterRecursion();
+    public static void sort(int[] a, Metrics met) {
+        met.setContext("mergesort-topdown", a.length, met == null ? 0L : 0L, "");
+        met.start();
         try {
-            int mid = lo + (n >>> 1);
-            sort(a, lo, mid, buf);
-            sort(a, mid, hi, buf);
-
-            Metrics.incComparison();
-            if (a[mid - 1] <= a[mid]) return; // already sorted
-            merge(a, lo, mid, hi, buf);
+            int[] buf = M.buf(a.length, met);            // track allocation
+            sortRec(a, 0, a.length, buf, met);
         } finally {
-            Metrics.exitRecursion();
+            met.stop();
         }
     }
 
-    private static void insertionSort(int[] a, int lo, int hi) {
+    private static void sortRec(int[] a, int lo, int hi, int[] buf, Metrics m) {
+        try (DepthGuard __ = m.enter()) {
+            int len = hi - lo;
+            if (len <= 32) { // small cutoff → insertion sort
+                insertion(a, lo, hi, m);
+                return;
+            }
+            int mid = lo + (len >> 1);
+            sortRec(a, lo, mid, buf, m);
+            sortRec(a, mid, hi, buf, m);
+            if (M.cmp(a[mid - 1], a[mid], m) <= 0) return; // already ordered
+            merge(a, lo, mid, hi, buf, m);
+        }
+    }
+
+    private static void insertion(int[] a, int lo, int hi, Metrics m) {
         for (int i = lo + 1; i < hi; i++) {
             int x = a[i];
             int j = i - 1;
-            while (j >= lo) {
-                Metrics.incComparison();
-                if (a[j] <= x) break;
-                a[j + 1] = a[j];
+            while (j >= lo && M.cmp(a[j], x, m) > 0) {
+                a[j + 1] = a[j]; // moves aren't tracked separately; OK
                 j--;
             }
             a[j + 1] = x;
         }
     }
 
-    private static void merge(int[] a, int lo, int mid, int hi, int[] buf) {
+    private static void merge(int[] a, int lo, int mid, int hi, int[] buf, Metrics m) {
+        int i = lo, j = mid, k = lo;
+        // copy left run into buffer
         System.arraycopy(a, lo, buf, lo, mid - lo);
-
-        int i = lo;  // left buf
-        int j = mid; // right in a
-        int k = lo;  // write index
-
         while (i < mid && j < hi) {
-            Metrics.incComparison();
-            if (buf[i] <= a[j]) a[k++] = buf[i++];
-            else                a[k++] = a[j++];
+            if (M.cmp(buf[i], a[j], m) <= 0) a[k++] = buf[i++];
+            else                              a[k++] = a[j++];
         }
+        // copy tail of left run
         while (i < mid) a[k++] = buf[i++];
+        // right run tail already in place
     }
 }

@@ -15,3 +15,6 @@ nope,4096,3,1,167,0,0,0,
 nope,4096,3,2,209,0,0,0,
 nope,4096,3,3,83,0,0,0,
 "demo-counting",1000,315333,1000,15,0,6,42,"sanity check w/o mergesort"
+"mergesort-topdown",100000,16628875,1866592,0,1,13,0,""
+"mergesort-topdown",100000,19694167,1866592,0,1,13,0,""
+"demo-counting",1000,310583,1000,15,0,6,42,"sanity check w/o mergesort"

@@ -7,7 +7,7 @@ public final class Metrics {
     private long startNs;
     private long elapsedNs;
 
-    // Depth
+    // Depth tracking
     private int currentDepth;
     private int maxDepth;
 
@@ -17,34 +17,57 @@ public final class Metrics {
     private long seed = 0L;
     private String notes = "";
 
+    // ---------- Context ----------
     public void setContext(String algo, int n, long seed, String notes) {
-        this.algo = algo; this.n = n; this.seed = seed; this.notes = notes == null ? "" : notes;
+        this.algo = algo;
+        this.n = n;
+        this.seed = seed;
+        this.notes = (notes == null ? "" : notes);
     }
 
+    // ---------- Depth tracking ----------
     public DepthGuard enter() {
         currentDepth++;
-        if (currentDepth > maxDepth) maxDepth = currentDepth;
+        if (currentDepth > maxDepth) {
+            maxDepth = currentDepth;
+        }
         return new DepthGuard(this);
     }
-    void exit() { currentDepth--; }
 
+    void exit() {
+        currentDepth--;
+    }
+
+    /** Returns the maximum depth ever reached. */
+    public int getMaxDepth() {
+        return maxDepth;
+    }
+
+    /** Returns the current depth right now. */
+    public int getCurrentDepth() {
+        return currentDepth;
+    }
+
+    // ---------- Counters ----------
     public void incComparisons() { comparisons++; }
     public void addComparisons(long k) { comparisons += k; }
     public void incSwaps() { swaps++; }
     public void incAllocations() { allocations++; }
 
-    public void start() { startNs = System.nanoTime(); }
-    public void stop()  { elapsedNs = System.nanoTime() - startNs; }
-
     public long getComparisons() { return comparisons; }
     public long getSwaps() { return swaps; }
     public long getAllocations() { return allocations; }
-    public int  getMaxDepth() { return maxDepth; }
+
+    // ---------- Timer ----------
+    public void start() { startNs = System.nanoTime(); }
+    public void stop() { elapsedNs = System.nanoTime() - startNs; }
     public long getElapsedNs() { return elapsedNs; }
 
+    // ---------- CSV ----------
     public String header() {
         return "algo,n,nanos,comparisons,swaps,allocations,maxDepth,seed,notes";
     }
+
     public String toCsvRow() {
         return String.join(",",
                 esc(algo), String.valueOf(n), String.valueOf(elapsedNs),
@@ -52,5 +75,8 @@ public final class Metrics {
                 String.valueOf(maxDepth), String.valueOf(seed), esc(notes)
         );
     }
-    private static String esc(String s){ return "\"" + s.replace("\"","\"\"") + "\""; }
+
+    private static String esc(String s) {
+        return "\"" + s.replace("\"", "\"\"") + "\"";
+    }
 }

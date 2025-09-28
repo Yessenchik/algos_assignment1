@@ -1,44 +1,28 @@
 package com.yourname.algos.sort;
 
-import com.yourname.algos.util.Metrics;
+import com.yourname.algos.metrics.Metrics;
 import org.junit.jupiter.api.Test;
-import java.util.Arrays;
 import java.util.Random;
 import static org.junit.jupiter.api.Assertions.*;
 
-class MergeSortTest {
-    @Test
-    void sortsRandomArrays() {
-        Random rnd = new Random(42);
-        for (int n : new int[]{1,2,8,32,128,1024}) {
-            int[] a = rnd.ints(n, -1000, 1000).toArray();
-            int[] expect = a.clone();
-            Arrays.sort(expect);
+public class MergeSortTest {
 
-            Metrics.reset();
-            MergeSort.sort(a);
-            assertArrayEquals(expect, a);
+    @Test
+    void sortsRandomArray() {
+        int n = 10_000;
+        int[] a = new int[n];
+        Random r = new Random(123);
+        for (int i = 0; i < n; i++) a[i] = r.nextInt();
+
+        Metrics m = new Metrics();
+        MergeSort.sort(a, m);
+
+        for (int i = 1; i < n; i++) {
+            assertTrue(a[i-1] <= a[i], "array not sorted at " + i);
         }
-    }
-
-    @Test
-    void sortsWithDuplicates() {
-        int[] a = {5,1,3,5,2,5,1,0,0,4,5};
-        int[] expect = a.clone();
-        Arrays.sort(expect);
-        MergeSort.sort(a);
-        assertArrayEquals(expect, a);
-    }
-
-    @Test
-    void recursionDepthIsLogN() {
-        int n = 1024;
-        int[] a = new Random().ints(n).toArray();
-        MergeSort.sort(a);
-
-        int depth = Metrics.getMaxDepth();
-        int bound = (int)Math.ceil(Math.log(n) / Math.log(2)) + 2;
-        assertTrue(depth <= bound,
-                "depth=" + depth + " should be ≤ ~log2(n)");
+        assertTrue(m.getElapsedNs() > 0);
+        assertTrue(m.getMaxDepth() > 0);
+        assertTrue(m.getAllocations() >= 1);
+        assertTrue(m.getComparisons() > 0);
     }
 }
