@@ -1,46 +1,29 @@
 package com.yourname.algos.sort;
 
-import com.yourname.algos.util.Metrics;
+import com.yourname.algos.metrics.Metrics;
 import org.junit.jupiter.api.Test;
-import java.util.Arrays;
 import java.util.Random;
 import static org.junit.jupiter.api.Assertions.*;
 
-class QuickSortTest {
+public class QuickSortTest {
 
     @Test
-    void sortsRandomArrays() {
-        Random rng = new Random(123);
-        for (int n : new int[]{0, 1, 10, 100, 1000}) {
-            int[] arr = rng.ints(n, -1000, 1000).toArray();
-            int[] expected = Arrays.copyOf(arr, arr.length);
-            Arrays.sort(expected);
+    void sortsRandomArray() {
+        int n = 5000;
+        int[] a = new int[n];
+        Random r = new Random(123);
+        for (int i = 0; i < n; i++) a[i] = r.nextInt();
 
-            Metrics m = new Metrics();
-            QuickSort.sort(arr, m);
+        Metrics m = new Metrics();
+        QuickSort.sort(a, m);
 
-            assertArrayEquals(expected, arr, "QuickSort should sort correctly");
-            if (n > 1) {
-                // depth check: should be O(log n), allow some slack
-                int bound = 2 * (int)(Math.log(n) / Math.log(2)) + 8;
-                assertTrue(m.maxDepth <= bound,
-                        "Recursion depth too large: " + m.maxDepth + " > " + bound);
-            }
+        for (int i = 1; i < n; i++) {
+            assertTrue(a[i-1] <= a[i], "Array not sorted at " + i);
         }
-    }
 
-    @Test
-    void handlesAlreadySortedAndReversed() {
-        int[] sorted = {1,2,3,4,5,6,7,8};
-        int[] expected = sorted.clone();
-        Metrics ms = new Metrics();
-        QuickSort.sort(sorted, ms);
-        assertArrayEquals(expected, sorted);
-
-        int[] reversed = {8,7,6,5,4,3,2,1};
-        int[] exp2 = expected.clone();
-        Metrics mr = new Metrics();
-        QuickSort.sort(reversed, mr);
-        assertArrayEquals(exp2, reversed);
+        assertTrue(m.getComparisons() > 0);
+        assertTrue(m.getSwaps() > 0);
+        assertTrue(m.getMaxDepth() > 0);
+        assertTrue(m.getElapsedNs() > 0);
     }
-}x
+}

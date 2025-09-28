@@ -1,58 +1,57 @@
 package com.yourname.algos.sort;
 
-import com.yourname.algos.util.Metrics;
-import java.util.Random;
+import com.yourname.algos.metrics.DepthGuard;
+import com.yourname.algos.metrics.M;
+import com.yourname.algos.metrics.Metrics;
 
 public final class QuickSort {
 
-    private static final Random RNG = new Random();
+    private static final int INSERTION_CUTOFF = 16;
 
-    private QuickSort() {}
-
-    public static void sort(int[] a, Metrics metrics) {
-        if (a == null || a.length < 2) return;
-        quicksort(a, 0, a.length - 1, metrics);
-    }
-
-    private static void quicksort(int[] a, int lo, int hi, Metrics metrics) {
-        while (lo < hi) {
-            // random pivot
-            int pivotIndex = lo + RNG.nextInt(hi - lo + 1);
-            swap(a, pivotIndex, hi, metrics);
-
-            int p = partition(a, lo, hi, metrics);
-
-            metrics.enter();
-            // recurse on smaller side
-            if (p - lo < hi - p) {
-                quicksort(a, lo, p - 1, metrics);
-                lo = p + 1; // loop handles right side
-            } else {
-                quicksort(a, p + 1, hi, metrics);
-                hi = p - 1; // loop handles left side
-            }
-            metrics.exit();
+    public static void sort(int[] a, Metrics met) {
+        met.setContext("quicksort", a.length, 0L, "cutoff=" + INSERTION_CUTOFF);
+        met.start();
+        try {
+            quicksort(a, 0, a.length - 1, met);
+        } finally {
+            met.stop();
         }
     }
 
-    private static int partition(int[] a, int lo, int hi, Metrics metrics) {
-        int pivot = a[hi];
-        int i = lo;
+    private static void quicksort(int[] a, int lo, int hi, Metrics m) {
+        try (DepthGuard __ = m.enter()) {
+            if (hi - lo + 1 <= INSERTION_CUTOFF) {
+                insertion(a, lo, hi, m);
+                return;
+            }
+            int p = partition(a, lo, hi, m);
+            quicksort(a, lo, p - 1, m);
+            quicksort(a, p + 1, hi, m);
+        }
+    }
+
+    private static int partition(int[] a, int lo, int hi, Metrics m) {
+        int pivot = a[hi];  // simple pivot (last element)
+        int i = lo - 1;
         for (int j = lo; j < hi; j++) {
-            metrics.comparisons++;
-            if (a[j] <= pivot) {
-                swap(a, i, j, metrics);
+            if (M.cmp(a[j], pivot, m) <= 0) {
                 i++;
+                M.swap(a, i, j, m);
             }
         }
-        swap(a, i, hi, metrics);
-        return i;
+        M.swap(a, i + 1, hi, m);
+        return i + 1;
     }
 
-    private static void swap(int[] a, int i, int j, Metrics metrics) {
-        int tmp = a[i];
-        a[i] = a[j];
-        a[j] = tmp;
-        metrics.swaps++;
+    private static void insertion(int[] a, int lo, int hi, Metrics m) {
+        for (int i = lo + 1; i <= hi; i++) {
+            int x = a[i];
+            int j = i - 1;
+            while (j >= lo && M.cmp(a[j], x, m) > 0) {
+                a[j + 1] = a[j];
+                j--;
+            }
+            a[j + 1] = x;
+        }
     }
 }
